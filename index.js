@@ -15,7 +15,7 @@ app.get('/getDecodedTransaction', (req, res) => {
                 methodResponse: "",
                 status: 'Failed'
             });
-        } else {
+        } else if (typeof(txResult.from) !== 'undefined'){
             message = txResult.from + ' has transferred ' + txResult.value + ' amount to ' + txResult.to;
         
             //res.send(txResult);
