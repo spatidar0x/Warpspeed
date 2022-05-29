@@ -21,7 +21,7 @@ app.get('/getDecodedTransaction', (req, res) => {
             //res.send(txResult);
             const smartContractAddress = txResult.to;
             url = 'https://api.etherscan.io/api?module=contract&action=getabi&address='+smartContractAddress+'&apikey=A6VYVVB4X374QB72GXJYTK82FQ65NZ2K6Y';
-            console.log(url);
+           // console.log(url);
     
            // const UNISWAPAddress = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984';
             // url = 'https://api.etherscan.io/api?module=contract&action=getabi&address='+UNISWAPAddress+'&apikey=A6VYVVB4X374QB72GXJYTK82FQ65NZ2K6Y';
@@ -30,6 +30,14 @@ app.get('/getDecodedTransaction', (req, res) => {
                 method: 'get',
                 url: url
             }).then(function (response) {
+                console.log(response);
+                if (response.data.result === 'Contract source code not verified') {
+                    res.send({
+                        message: "Contract source code not verified",
+                        methodResponse: "",
+                        status: 'Failed'
+                    });
+                } else {
                 contractABI = JSON.parse(response.data.result);
                 const decoder = new InputDataDecoder(contractABI);
                 const data = txResult.input.trim()
@@ -45,6 +53,7 @@ app.get('/getDecodedTransaction', (req, res) => {
                     methodResponse: methodResponse,
                     status: 'Ok'
                 });
+            }
                 });
         }
         
