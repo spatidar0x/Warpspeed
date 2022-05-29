@@ -5,7 +5,7 @@ const axios = require('axios');
 var Web3 = require('web3');
 var web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/v3/bb342a900b8e41f6bbc125e521194467"));
 
-app.get('/getDecodedTransaction', (req, res) => {
+app.get('/getDecodedTransaction', async (req, res) => {
     txHash = req.query.txHash;
     web3.eth.getTransaction(txHash, (error, txResult) => {
         if (txResult === '0x') {
@@ -17,14 +17,17 @@ app.get('/getDecodedTransaction', (req, res) => {
         } else if (typeof (txResult) !== 'undefined') {
 
             const smartContractAddress = txResult.to;
-          
+
             const API_KEY = 'A6VYVVB4X374QB72GXJYTK82FQ65NZ2K6Y';
             url = 'https://api.etherscan.io/api?module=contract&action=getabi&address=' + smartContractAddress + '&apikey=' + API_KEY;
             axios({
                 method: 'get',
                 url: url
-            }).then(function (response) {
+            }).then( async(response)=> {
                 if (response.data.result === 'Contract source code not verified') {
+                    let val = web3.utils.fromWei(txResult.value, 'ether');
+                    let TransactionFee = txResult.gas * txResult.gasPrice;
+                    message = 'Transferred ' + val.toString() + ' ETH on an unverified contract ' + 'from ' + txResult.from +  ' to ' + txResult.to + ' with a transaction fee of '+  TransactionFee.toString() + ' wei';;
                     res.send({
                         message: message,
                         methodResponse: "Contract source code not verified",
@@ -43,10 +46,16 @@ app.get('/getDecodedTransaction', (req, res) => {
                         argNames: result.names
                     };
                     let val = web3.utils.fromWei(txResult.value, 'ether');
+                    let TransactionFee = txResult.gas * txResult.gasPrice;
+
                     if (result.method === 'mint') {
-                        message = 'Tokens worth ' + val.toString() + ' ethers have been minted to ' + txResult.to //+ ' with a gas fee of '+  gas.toString() + ' ethers';
+                        const tokenInst = new web3.eth.Contract(contractABI, smartContractAddress);
+                        let token = await tokenInst.methods.symbol().call();                        
+                        message = token + ' tokens worth ' + val.toString() + ' ETH have been minted to ' + txResult.to + ' with a transaction fee of '+  TransactionFee.toString() + ' wei';
+                    } else if (result.method === 'approve') {
+                        message = 'Approved ' + val.toString() + ' ETH from ' + txResult.from +  ' to ' + txResult.to + ' with a transaction fee of '+  TransactionFee.toString() + ' wei';
                     } else {
-                        message = txResult.from + ' has transferred ' + val.toString() + ' ethers to ' + txResult.to //+ ' with a gas fee of '+  gas.toString() + ' ethers';
+                        message = 'Transferred ' + val.toString() + ' ETH from ' + txResult.from +  ' to ' + txResult.to + ' with a transaction fee of '+  TransactionFee.toString() + ' wei';
                     }
                     res.send({
                         message: message,
@@ -59,6 +68,7 @@ app.get('/getDecodedTransaction', (req, res) => {
 
     });
 });
+
 
 //PORT ENVIRONMENT VARIABLE
 const port = process.env.PORT || 5000;
